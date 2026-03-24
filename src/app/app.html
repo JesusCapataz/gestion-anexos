@@ -1,0 +1,558 @@
+@if (pantallaActual === 'login') {
+  <div class="min-h-screen bg-uni-blue flex items-center justify-center p-4 relative overflow-hidden">
+    <div class="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-white/5 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-uni-orange/10 rounded-full blur-3xl"></div>
+
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative z-10 animate-in fade-in zoom-in duration-300">
+      <div class="bg-gray-50 p-8 flex flex-col items-center border-b border-gray-100">
+        <svg viewBox="0 0 100 100" class="w-20 h-20 text-uni-blue fill-current mb-4">
+          <path d="M50 5 L10 25 L10 75 L50 95 L90 75 L90 25 Z M50 15 L80 30 L80 70 L50 85 L20 70 L20 30 Z M50 25 L70 35 L70 65 L50 75 L30 65 L30 35 Z M45 40 H55 V60 H45 Z"/>
+        </svg>
+        <h1 class="text-2xl font-extrabold text-uni-blue text-center leading-tight">Gestión de Anexos</h1>
+        <p class="text-uni-orange font-bold text-sm tracking-widest uppercase mt-1">Odontología</p>
+      </div>
+      
+      <div class="p-8">
+        @if (modoAuth === 'login') {
+          <div class="mb-5">
+            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Correo Institucional</label>
+              <div class="flex shadow-sm rounded-lg focus-within:ring-2 focus-within:ring-uni-blue transition-all bg-gray-50 focus-within:bg-white border border-gray-300 overflow-hidden">
+              <input type="text" placeholder="usuario" [value]="correoLogin" (input)="correoLogin = cajaCorreoLog.value" #cajaCorreoLog class="w-full px-4 py-3 text-sm outline-none bg-transparent">
+              <span class="inline-flex items-center px-4 border-l border-gray-300 bg-gray-100 text-gray-500 text-sm font-bold select-none">@unimagdalena.edu.co</span>
+            </div>
+            </div>
+          <div class="mb-6">
+            <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Contraseña</label>
+            <input type="password" placeholder="••••••••" class="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-uni-blue outline-none bg-gray-50 focus:bg-white transition-all">
+          </div>
+          
+          <button (click)="iniciarSesion(false)" class="w-full bg-uni-blue text-white font-bold px-6 py-3.5 rounded-lg hover:bg-blue-800 transition-all shadow-md flex items-center justify-center gap-2">
+            Iniciar Sesión
+          </button>
+          
+          <p class="text-center text-sm text-gray-500 mt-6">
+            ¿No tienes cuenta? 
+            <button (click)="cambiarModoAuth('registro')" class="text-uni-orange font-bold hover:underline outline-none">Crear cuenta</button>
+          </p>
+        } @else {
+          
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wide mb-2" [class.text-red-500]="errorRegNombre" [class.text-gray-500]="!errorRegNombre">Nombre</label>
+              <input type="text" placeholder="Ej. Juan" [value]="nombreRegistro" (input)="nombreRegistro = cajaNomReg.value; errorRegNombre = false" #cajaNomReg class="w-full border rounded-lg px-4 py-3 text-sm outline-none transition-all" [class.border-red-500]="errorRegNombre" [class.bg-red-50]="errorRegNombre" [class.focus:ring-red-500]="errorRegNombre" [class.border-gray-300]="!errorRegNombre" [class.focus:ring-uni-blue]="!errorRegNombre">
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wide mb-2" [class.text-red-500]="errorRegApellido" [class.text-gray-500]="!errorRegApellido">Apellido</label>
+              <input type="text" placeholder="Ej. Pérez" [value]="apellidoRegistro" (input)="apellidoRegistro = cajaApeReg.value; errorRegApellido = false" #cajaApeReg class="w-full border rounded-lg px-4 py-3 text-sm outline-none transition-all" [class.border-red-500]="errorRegApellido" [class.bg-red-50]="errorRegApellido" [class.focus:ring-red-500]="errorRegApellido" [class.border-gray-300]="!errorRegApellido" [class.focus:ring-uni-blue]="!errorRegApellido">
+            </div>
+          </div>
+          
+          <div class="mb-4">
+           <label class="block text-xs font-bold uppercase tracking-wide mb-2" [class.text-red-500]="errorRegCorreo" [class.text-gray-500]="!errorRegCorreo">Correo Institucional</label>
+            
+            <div class="flex rounded-lg transition-all border overflow-hidden" [class.border-red-500]="errorRegCorreo" [class.focus-within:ring-red-500]="errorRegCorreo" [class.border-gray-300]="!errorRegCorreo" [class.focus-within:ring-2]="true" [class.focus-within:ring-uni-blue]="!errorRegCorreo">
+              <input type="text" placeholder="nuevo.usuario" [value]="correoRegistro" (input)="correoRegistro = cajaCorrReg.value; errorRegCorreo = false" #cajaCorrReg class="w-full px-4 py-3 text-sm outline-none bg-transparent" [class.bg-red-50]="errorRegCorreo">
+              <span class="inline-flex items-center px-4 border-l text-[13px] font-extrabold tracking-tight select-none" [class.bg-red-100]="errorRegCorreo" [class.text-red-600]="errorRegCorreo" [class.border-red-500]="errorRegCorreo" [class.bg-gray-100]="!errorRegCorreo" [class.text-gray-500]="!errorRegCorreo" [class.border-gray-300]="!errorRegCorreo">@unimagdalena.edu.co</span>
+            </div>
+
+            @if (errorRegCorreo) {
+              <p class="text-xs text-red-500 font-bold mt-1.5 leading-tight flex items-center gap-1.5 animate-pulse"><svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> Ingresa solo tu usuario (sin espacios ni @).</p>
+            }
+          </div>
+
+          <div class="mb-4">
+            <div class="mb-4">
+            <label class="block text-xs font-bold uppercase tracking-wide mb-2" [class.text-red-500]="errorRegPass" [class.text-gray-500]="!errorRegPass">Contraseña</label>
+            
+            <input type="password" placeholder="••••••••" [value]="passRegistro" (input)="validarContrasenaEnTiempoReal(cajaPassReg.value)" #cajaPassReg class="w-full border rounded-lg px-4 py-3 text-sm outline-none transition-all mb-3" [class.border-red-500]="errorRegPass" [class.bg-red-50]="errorRegPass" [class.focus:ring-red-500]="errorRegPass" [class.border-gray-300]="!errorRegPass" [class.focus:ring-uni-blue]="!errorRegPass">
+            
+            <div class="bg-gray-50/50 rounded-xl p-4 border border-gray-100">
+              <p class="text-[11px] font-bold text-uni-blue mb-3 uppercase tracking-wider">Tu contraseña debe cumplir con:</p>
+              
+            <ul class="space-y-2.5 text-xs font-medium text-gray-600">
+                <li class="flex items-center gap-2.5 transition-colors duration-300" [class.text-green-600]="passLongitudValida">
+                  <span class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all duration-300" [class.bg-green-100]="passLongitudValida" [class.bg-gray-200]="!passLongitudValida">
+                    @if (passLongitudValida) { <svg class="w-2.5 h-2.5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg> } @else { <div class="w-1.5 h-1.5 rounded-full bg-white"></div> }
+                  </span> Mínimo 8 caracteres.
+                </li>
+
+                <li class="flex items-center gap-2.5 transition-colors duration-300" [class.text-green-600]="passMinusculaValida">
+                  <span class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all duration-300" [class.bg-green-100]="passMinusculaValida" [class.bg-gray-200]="!passMinusculaValida">
+                    @if (passMinusculaValida) { <svg class="w-2.5 h-2.5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg> } @else { <div class="w-1.5 h-1.5 rounded-full bg-white"></div> }
+                  </span> Una letra minúscula (a-z).
+                </li>
+
+                <li class="flex items-center gap-2.5 transition-colors duration-300" [class.text-green-600]="passMayusculaValida">
+                  <span class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all duration-300" [class.bg-green-100]="passMayusculaValida" [class.bg-gray-200]="!passMayusculaValida">
+                    @if (passMayusculaValida) { <svg class="w-2.5 h-2.5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg> } @else { <div class="w-1.5 h-1.5 rounded-full bg-white"></div> }
+                  </span> Una letra mayúscula (A-Z).
+                </li>
+
+                <li class="flex items-center gap-2.5 transition-colors duration-300" [class.text-green-600]="passNumeroValida">
+                  <span class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all duration-300" [class.bg-green-100]="passNumeroValida" [class.bg-gray-200]="!passNumeroValida">
+                    @if (passNumeroValida) { <svg class="w-2.5 h-2.5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg> } @else { <div class="w-1.5 h-1.5 rounded-full bg-white"></div> }
+                  </span> Al menos un número (0-9).
+                </li>
+
+                <li class="flex items-center gap-2.5 transition-colors duration-300" [class.text-green-600]="passEspecialValida">
+                  <span class="w-4 h-4 rounded-full flex items-center justify-center shrink-0 transition-all duration-300" [class.bg-green-100]="passEspecialValida" [class.bg-gray-200]="!passEspecialValida">
+                    @if (passEspecialValida) { <svg class="w-2.5 h-2.5 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg> } @else { <div class="w-1.5 h-1.5 rounded-full bg-white"></div> }
+                  </span> Un símbolo (!@#$&*.,\-_).
+                </li>
+              </ul>
+            </div>
+
+            @if (errorRegPass) {
+              <p class="text-xs text-red-500 font-bold mt-1.5 leading-tight">{{ errorRegPassMensaje }}</p>
+            }
+          </div>
+          </div>
+          
+          <div class="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <label class="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" (change)="toggleRegAdmin($event)" class="w-4 h-4 text-uni-blue rounded border-gray-300 focus:ring-uni-blue">
+              <span class="text-sm font-bold text-gray-700">Solicitar rol de Administrador</span>
+            </label>
+            
+            <div [class.hidden]="!regEsAdmin" class="mt-4 pt-4 border-t border-gray-200 animate-in fade-in slide-in-from-top-2">
+              <label class="block text-xs font-bold uppercase tracking-wide mb-2" [class.text-red-500]="errorToken" [class.text-gray-500]="!errorToken">
+                Código de Autorización
+              </label>
+              <input #cajaToken (input)="errorToken = false" type="password" placeholder="Ingresa el código" class="w-full border rounded-lg px-4 py-3 text-sm outline-none transition-all" [class.border-red-500]="errorToken" [class.bg-red-50]="errorToken" [class.focus:ring-red-500]="errorToken" [class.border-gray-300]="!errorToken" [class.focus:ring-uni-blue]="!errorToken">
+              @if (errorToken) {
+                <p class="text-xs text-red-500 font-bold mt-2 flex items-center gap-1">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  Código incorrecto o inválido.
+                </p>
+              }
+            </div>
+          </div>
+          
+          <button (click)="crearCuenta(cajaToken?.value || '')" class="w-full bg-green-600 text-white font-bold px-6 py-3.5 rounded-lg hover:bg-green-700 transition-all shadow-md flex items-center justify-center gap-2">
+            Crear Cuenta
+          </button>
+          
+          <p class="text-center text-sm text-gray-500 mt-6">
+            ¿Ya tienes cuenta? 
+            <button (click)="cambiarModoAuth('login')" class="text-uni-blue font-bold hover:underline outline-none">Iniciar sesión</button>
+          </p>
+        }
+      </div>
+    </div>
+  </div>
+}@if (pantallaActual === 'dashboard') {
+<nav class="bg-uni-blue text-white shadow-xl border-b-4 border-uni-orange sticky top-0 z-[700]">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-24">
+        <div class="flex items-center gap-5">
+         <div class="w-20 h-20 flex items-center justify-center bg-white rounded-full p-1.5 shadow-md shrink-0">
+            <img src="https://cdn.unimagdalena.edu.co/images/escudo/bg_light/192.png" alt="Escudo Unimagdalena" class="w-full h-full object-contain drop-shadow-sm hover:scale-105 transition-transform">
+          </div>
+          <div class="flex flex-col justify-center">
+            <span class="text-xs font-medium text-blue-200 uppercase tracking-widest leading-none mb-1">Universidad del Magdalena</span>
+            <span class="text-base font-bold text-white leading-none mt-1">Facultad de Ciencias de la Salud</span>
+            <span class="text-2xl font-extrabold leading-tight tracking-tight text-white mt-0.5">Gestión de Anexos - <span class="text-uni-orange">Odontología</span></span>
+          </div>
+        </div>
+
+        <div class="relative">
+          <button (click)="menuAbierto = !menuAbierto" class="flex items-center gap-4 hover:bg-white/10 p-2 rounded-lg transition-all focus:outline-none">
+            <div class="hidden sm:block text-right">
+              <p class="text-sm font-semibold text-gray-100">{{ nombreUsuarioActivo }}</p>
+              <p class="text-[10px] uppercase tracking-tighter font-bold" [class.text-uni-orange]="rolActual === 'Administrador'" [class.text-green-400]="rolActual !== 'Administrador'">
+                {{ rolActual }}
+              </p>
+            </div>
+            <div class="h-10 w-10 rounded-full bg-uni-orange border-2 border-white flex items-center justify-center text-white font-bold shadow-md">{{ inicialesUsuario }}</div>
+            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </button>
+
+          @if (menuAbierto) {
+            <div class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-100 py-2 z-50">
+              <div class="px-4 py-2 border-b border-gray-50 mb-1">
+                <p class="text-xs text-gray-400 font-medium">Simular Rol</p>
+              </div>
+              <button (click)="cambiarRol('Administrador')" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 font-medium">
+                <span class="w-2 h-2 rounded-full" [class.bg-green-500]="rolActual === 'Administrador'" [class.bg-gray-300]="rolActual !== 'Administrador'"></span> Administrador
+              </button>
+              <button (click)="cambiarRol('Docente')" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 font-medium">
+                <span class="w-2 h-2 rounded-full" [class.bg-green-500]="rolActual === 'Docente'" [class.bg-gray-300]="rolActual !== 'Docente'"></span> Docente
+              </button>
+              <button (click)="cambiarRol('Estudiante')" class="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 font-medium">
+                <span class="w-2 h-2 rounded-full" [class.bg-green-500]="rolActual === 'Estudiante'" [class.bg-gray-300]="rolActual !== 'Estudiante'"></span> Estudiante
+              </button>
+              <div class="border-t border-gray-100 mt-1"></div>
+              <button (click)="cerrarSesion()" class="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 font-medium mt-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg> Cerrar sesión
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen bg-gray-50 relative animate-in fade-in duration-300 pb-24">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-uni-blue flex items-center justify-between">
+        <div><p class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Total Anexos</p><p class="text-3xl font-extrabold text-uni-blue mt-1">{{ totalAnexos }}</p></div>
+      </div>
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-uni-orange flex items-center justify-between">
+        <div><p class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Actualizados</p><p class="text-3xl font-extrabold text-gray-800 mt-1">{{ actualizados }}</p></div>
+      </div>
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-green-500 flex items-center justify-between">
+        <div><p class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Años Cubiertos</p><p class="text-3xl font-extrabold text-green-600 mt-1">{{ rangoAnios }}</p></div>
+      </div>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-6 flex flex-col xl:flex-row gap-4 items-center justify-between transition-all" [class.border-green-500]="rolActual === 'Administrador'">
+      <div class="flex flex-col md:flex-row gap-4 w-full flex-1 relative">
+        <div class="relative w-full flex-1 min-w-[200px]">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></div>
+          <input #cajaTexto type="text" [value]="filtroActualTexto" (input)="buscar(cajaTexto.value, cajaFiltPrin.value, cajaFiltSec.value, cajaAnio.value)" placeholder="Buscar palabra clave..." class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-uni-orange outline-none shadow-inner transition-all">
+        </div>
+       <select #cajaFiltPrin [value]="filtroActualCatPrin" (change)="buscar(cajaTexto.value, cajaFiltPrin.value, cajaFiltSec.value, cajaAnio.value)" class="w-full md:w-44 border border-gray-300 rounded-lg px-3 py-3 text-sm focus:ring-2 focus:ring-uni-orange outline-none bg-white font-medium shrink-0">
+          <option value="">Cat. Principal</option>
+          @for (cat of categoriasPrincipales; track cat) { <option [value]="cat.toUpperCase()">{{ cat }}</option> }
+        </select>
+        <select #cajaFiltSec [value]="filtroActualCatSec" (change)="buscar(cajaTexto.value, cajaFiltPrin.value, cajaFiltSec.value, cajaAnio.value)" class="w-full md:w-44 border border-gray-300 rounded-lg px-3 py-3 text-sm focus:ring-2 focus:ring-uni-orange outline-none bg-white font-medium shrink-0">
+          <option value="">Subcategoría</option>
+          @for (sub of categoriasSecundarias; track sub) { <option [value]="sub.toUpperCase()">{{ sub }}</option> }
+        </select>
+    <select #cajaAnio [value]="filtroActualAnio" (change)="buscar(cajaTexto.value, cajaFiltPrin.value, cajaFiltSec.value, cajaAnio.value)" class="w-full md:w-32 border border-gray-300 rounded-lg px-3 py-3 text-sm focus:ring-2 focus:ring-uni-orange outline-none bg-white font-medium shrink-0 cursor-pointer">
+          <option value="">Año</option>
+          <option value="SIN_ANIO">Sin asignar</option>
+          @for (anio of aniosDisponibles; track anio) { <option [value]="anio">{{ anio }}</option> }
+        </select>
+        
+        @if (hayFiltrosActivos()) {
+          <button (click)="limpiarFiltros()" class="flex items-center justify-center w-11 h-11 shrink-0 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-200" title="Limpiar filtros (Esc)"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+        }
+      </div>
+      @if (rolActual === 'Administrador') {
+        <button (click)="abrirFormularioCrear()" class="w-full xl:w-auto bg-green-600 text-white font-bold px-6 py-3 rounded-lg hover:bg-green-700 transition-all flex items-center justify-center gap-2 shadow-md shrink-0 ml-auto">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Subir Anexo
+        </button>
+      }
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div class="overflow-x-auto max-h-[600px] overflow-y-auto relative rounded-b-xl">
+        <table class="w-full text-left border-collapse">
+          <thead class="sticky top-0 z-20 shadow-sm bg-uni-blue">
+            <tr class="bg-uni-blue text-white text-[11px] uppercase tracking-widest"><th class="p-4 font-bold">ID</th><th class="p-4 font-bold">Documento / Descripción</th><th class="p-4 text-center font-bold">Año</th><th class="p-4 text-center font-bold">Categoría</th><th class="p-4 text-center font-bold">Acciones</th></tr>
+          </thead>
+          <tbody class="text-sm">
+            @for (anexo of anexosFiltrados; track anexo.id) {
+              <tr class="border-b border-gray-100 hover:bg-blue-100/40 hover:shadow-md transition-all duration-200 group">
+                <td class="p-4 font-bold text-uni-blue">#{{ anexo.id }}</td>
+                <td class="p-4"><div class="font-bold text-gray-800 group-hover:text-uni-blue transition-colors">{{ anexo.nombre }}</div><div class="text-[11px] text-gray-400 mt-0.5">{{ anexo.descripcion }}</div></td>
+                <td class="p-4 text-center text-gray-600 font-medium">{{ anexo.anio || '-' }}</td>
+                <td class="p-4 text-center"><div class="flex flex-col items-center gap-1.5"><span class="bg-blue-50 text-uni-blue px-3 py-1 rounded-full text-[9px] font-bold border border-blue-100 uppercase tracking-tighter w-max shadow-sm">{{ anexo.categoriaPrincipal }}</span><span class="bg-gray-50 text-gray-500 px-3 py-1 rounded-full text-[8px] font-bold border border-gray-200 uppercase tracking-tighter w-max">{{ anexo.categoriaSecundaria }}</span></div></td>
+                <td class="p-4 text-center">
+                  <div class="flex items-center justify-center gap-3">
+                    <button (click)="abrirPdf(anexo)" class="bg-uni-blue text-white text-[10px] font-bold px-4 py-2 rounded-md hover:bg-uni-orange transition-all shadow-sm">VER DOC</button>
+                    <div class="flex gap-1 border-l border-gray-200 pl-3">
+                      <button (click)="descargarPdfRapido()" class="text-gray-300 hover:text-uni-blue p-1 transition-colors" title="Descargar Documento"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg></button>
+                      @if (rolActual === 'Administrador') {
+                        <button (click)="abrirFormularioEditar(anexo)" class="text-gray-300 hover:text-uni-orange p-1 transition-colors" title="Editar"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
+                        <button (click)="eliminarAnexo(anexo)" class="text-gray-300 hover:text-red-500 p-1 transition-colors" title="Eliminar"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                      }
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="5" class="p-20 text-center"><div class="flex flex-col items-center gap-3"><div class="text-gray-300"><svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div><p class="text-gray-400 font-medium italic">No se encontraron anexos para esta combinación de filtros.</p><button (click)="limpiarFiltros()" class="text-uni-blue text-xs font-bold hover:underline mt-2">Limpiar todos los filtros (Esc)</button></div></td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+@if (estadoDescarga !== 'ninguna') {
+      <div class="fixed top-8 z-[2000] text-white px-5 py-4 rounded-xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-top-5 border-b-4 transition-all duration-300"
+           [class.right-8]="!chatAbierto"
+           [class.right-[400px]]="chatAbierto"
+           [class.bg-uni-blue]="estadoDescarga === 'iniciada'" [class.border-b-uni-orange]="estadoDescarga === 'iniciada'" [class.bg-green-600]="estadoDescarga === 'finalizada'" [class.border-b-green-400]="estadoDescarga === 'finalizada'">
+        @if (estadoDescarga === 'iniciada') {
+          <svg class="w-6 h-6 text-blue-200 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+          <div><p class="font-bold text-sm">Descarga Iniciada</p><p class="text-xs text-blue-100">Guardando documento en tu equipo...</p></div>
+        } @else {
+          <svg class="w-6 h-6 text-green-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+          <div><p class="font-bold text-sm">Descarga Finalizada</p><p class="text-xs text-green-100">El documento se guardó exitosamente.</p></div>
+        }
+      </div>
+    }
+
+    <div class="fixed bottom-8 left-8 z-[2000] flex flex-col-reverse gap-4 items-start pointer-events-none">
+      @if (toastVisible) {
+        <div class="pointer-events-auto bg-gray-900 text-white px-5 py-4 rounded-xl shadow-2xl flex items-center gap-4 border-l-4 border-l-red-500 animate-in slide-in-from-bottom-2">
+          <div class="bg-red-500/20 text-red-400 font-extrabold w-8 h-8 rounded-full flex items-center justify-center text-sm border border-red-500/30 shadow-inner">{{ tiempoRestante }}</div>
+          <div><p class="font-bold text-sm">Anexo eliminado</p><p class="text-xs text-gray-400">El documento fue retirado del sistema.</p></div>
+          <button (click)="deshacerEliminacion()" class="ml-4 bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors border border-white/20 flex items-center gap-2">Deshacer</button>
+        </div>
+      }
+
+      @if (toastExitoVisible) {
+        <div class="pointer-events-auto bg-green-600 text-white px-5 py-4 rounded-xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom-2">
+          <svg class="w-6 h-6 text-green-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <div><p class="font-bold text-sm">Operación exitosa</p><p class="text-xs text-green-100">{{ mensajeExito }}</p></div>
+        </div>
+      }
+    </div>
+   @if (modalFormVisible) {
+      <div class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4 animate-in fade-in zoom-in-95 duration-200">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col border border-gray-100 relative">
+          @if (guardando) {
+            <div class="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-50 rounded-2xl">
+              <div class="w-12 h-12 border-4 border-uni-blue border-t-transparent rounded-full animate-spin"></div><p class="mt-4 font-bold text-uni-blue animate-pulse">Guardando documento en el sistema...</p>
+            </div>
+          }
+          <div class="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+            <div class="flex items-center gap-3">
+              <div class="p-2 rounded-lg" [class.bg-green-100]="modoFormulario === 'crear'" [class.text-green-600]="modoFormulario === 'crear'" [class.bg-uni-blue]="modoFormulario === 'editar'" [class.text-white]="modoFormulario === 'editar'">
+                @if (modoFormulario === 'crear') { <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg> } @else { <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg> }
+              </div>
+              <h2 class="text-lg font-extrabold text-uni-blue">{{ modoFormulario === 'crear' ? 'Subir Nuevo Anexo' : 'Editar Anexo #' + anexoFormulario.id }}</h2>
+            </div>
+            <button (click)="cerrarFormulario()" class="text-gray-400 hover:text-red-500 transition-colors p-1 bg-white rounded-full hover:bg-red-50"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+          </div>
+          <div class="p-6 flex flex-col gap-5">
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wide mb-2" [class.text-red-500]="errorNombre" [class.text-gray-500]="!errorNombre">Nombre del Documento @if (errorNombre) { <span class="text-red-500 normal-case">*Obligatorio</span> }</label>
+              <input type="text" [value]="anexoFormulario.nombre" (input)="actualizarCampo('nombre', cajaNombre.value)" #cajaNombre placeholder="Ej. Resolución de Acreditación 2024" class="w-full border rounded-lg px-4 py-3 text-sm focus:ring-2 outline-none transition-all" [class.border-red-500]="errorNombre" [class.bg-red-50]="errorNombre" [class.focus:ring-red-500]="errorNombre" [class.border-gray-300]="!errorNombre" [class.bg-gray-50]="!errorNombre" [class.focus:ring-uni-blue]="!errorNombre">
+            </div>
+           <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+             <div>
+                <label class="block text-xs font-bold uppercase tracking-wide mb-2" [class.text-gray-500]="!errorAnio" [class.text-red-500]="errorAnio">
+                  Año (Opcional) @if (errorAnio) { <span class="text-[10px] lowercase font-bold italic ml-1">*inválido</span> }
+                </label>
+                <input type="text" maxlength="4" placeholder="Ej. 2026" [value]="anexoFormulario.anio" (input)="validarAnio(cajaAnioForm.value)" #cajaAnioForm 
+                       class="w-full border rounded-lg px-4 py-3 text-sm focus:ring-2 outline-none transition-all text-center"
+                       [class.border-red-500]="errorAnio" [class.bg-red-50]="errorAnio" [class.focus:ring-red-500]="errorAnio"
+                       [class.border-gray-300]="!errorAnio" [class.bg-gray-50]="!errorAnio" [class.focus:ring-uni-blue]="!errorAnio">
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wide mb-2" [class.text-red-500]="errorCatPrin">
+                  Cat. Principal @if (errorCatPrin) { <span class="text-[10px] lowercase font-bold italic ml-1">*obligatorio</span> }
+                </label>
+                <select [value]="anexoFormulario.categoriaPrincipal" (change)="actualizarCampo('categoriaPrincipal', cajaCatPrinForm.value); errorCatPrin = false" #cajaCatPrinForm 
+                        class="w-full border rounded-lg px-4 py-3 text-sm focus:ring-2 outline-none transition-all cursor-pointer"
+                        [class.border-red-500]="errorCatPrin" [class.bg-red-50]="errorCatPrin" [class.focus:ring-red-500]="errorCatPrin"
+                        [class.border-gray-300]="!errorCatPrin" [class.bg-gray-50]="!errorCatPrin" [class.focus:ring-uni-blue]="!errorCatPrin">
+                  <option value="">Selecciona</option>
+                  @for (cat of categoriasPrincipales; track cat) { <option [value]="cat.toUpperCase()" [selected]="cat.toUpperCase() === anexoFormulario.categoriaPrincipal">{{ cat }}</option> }
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold uppercase tracking-wide mb-2" [class.text-red-500]="errorCatSec">
+                  Subcategoría @if (errorCatSec) { <span class="text-[10px] lowercase font-bold italic ml-1">*obligatorio</span> }
+                </label>
+                <select [value]="anexoFormulario.categoriaSecundaria" (change)="actualizarCampo('categoriaSecundaria', cajaCatSecForm.value); errorCatSec = false" #cajaCatSecForm 
+                        class="w-full border rounded-lg px-4 py-3 text-sm focus:ring-2 outline-none transition-all cursor-pointer"
+                        [class.border-red-500]="errorCatSec" [class.bg-red-50]="errorCatSec" [class.focus:ring-red-500]="errorCatSec"
+                        [class.border-gray-300]="!errorCatSec" [class.bg-gray-50]="!errorCatSec" [class.focus:ring-uni-blue]="!errorCatSec">
+                  <option value="">Selecciona</option>
+                  @for (sub of categoriasSecundarias; track sub) { <option [value]="sub.toUpperCase()" [selected]="sub.toUpperCase() === anexoFormulario.categoriaSecundaria">{{ sub }}</option> }
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Descripción (Opcional)</label>
+              <textarea rows="2" [value]="anexoFormulario.descripcion" (input)="actualizarCampo('descripcion', cajaDescForm.value)" #cajaDescForm placeholder="Breve resumen del contenido..." class="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:ring-2 focus:ring-uni-blue outline-none bg-gray-50 focus:bg-white transition-all resize-none"></textarea>
+            </div>
+            @if (!archivoSeleccionado) {
+              <label class="block border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-uni-blue hover:bg-blue-50/30 transition-all cursor-pointer group">
+                <input type="file" class="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" (change)="seleccionarArchivo($event)">
+                <svg class="w-10 h-10 text-gray-400 mx-auto mb-3 group-hover:text-uni-blue transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                <p class="text-sm font-semibold text-gray-700">{{ modoFormulario === 'crear' ? 'Haz clic para explorar y subir tu documento' : 'Haz clic para reemplazar el archivo actual' }}</p><p class="text-xs text-gray-400 mt-1">PDF, Word, Excel, PPT o TXT (Máx. 10MB)</p>
+              </label>
+            } @else {
+              <div class="border {{ archivoInfo.colorBase }} rounded-xl p-5 flex items-center justify-between shadow-sm transition-all animate-in fade-in">
+                <div class="flex items-center gap-4">
+                  <div class="{{ archivoInfo.colorIcono }} p-3 rounded-lg border shadow-sm flex flex-col items-center justify-center relative w-14 h-14"><svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/></svg><span class="absolute text-[8px] font-black mt-2.5">{{ archivoInfo.label }}</span></div>
+                  <div><p class="font-bold text-gray-800 text-sm truncate max-w-[250px]">{{ archivoInfo.nombre }}</p><p class="text-xs text-gray-500 font-medium mt-0.5">Archivo listo ({{ archivoInfo.tamano }} MB)</p></div>
+                </div>
+                <button (click)="removerArchivo()" class="text-gray-400 hover:text-red-500 hover:bg-white p-2 rounded-full transition-colors border border-transparent hover:border-gray-200" title="Quitar archivo"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+              </div>
+            }
+          </div>
+          <div class="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
+            <button (click)="cerrarFormulario()" class="px-6 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">Cancelar</button>
+            <button (click)="guardarFormulario()" class="px-6 py-2.5 text-sm font-bold text-white rounded-lg shadow-md transition-all flex items-center gap-2" [class.bg-green-600]="modoFormulario === 'crear'" [class.hover:bg-green-700]="modoFormulario === 'crear'" [class.bg-uni-blue]="modoFormulario === 'editar'" [class.hover:bg-blue-700]="modoFormulario === 'editar'"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> {{ modoFormulario === 'crear' ? 'Guardar Anexo' : 'Actualizar Cambios' }}</button>
+          </div>
+        </div>
+      </div>
+    }
+@if (modalPdfVisible) {
+      <div class="fixed inset-0 bg-gray-900/95 backdrop-blur-md flex items-center justify-center z-[1000] p-4 sm:p-8 animate-in fade-in duration-200">
+        <div class="w-full max-w-5xl h-full flex flex-col">
+          <div class="flex justify-between items-center mb-4 text-white">
+            <div>
+              <h3 class="font-bold text-lg flex items-center gap-3"><svg class="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg> {{ anexoViendoPdf?.nombre }}</h3>
+              <p class="text-sm text-gray-400 mt-1">Categoría: {{ anexoViendoPdf?.categoriaPrincipal }} | Año: {{ anexoViendoPdf?.anio }}</p>
+            </div>
+            <div class="flex items-center gap-4">
+              <button (click)="descargarPdfRapido()" class="hover:bg-white/10 p-2 rounded-lg transition-colors" title="Descargar Documento">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+              </button>
+              <button (click)="cerrarPdf()" class="bg-white/10 hover:bg-red-500 hover:text-white p-2 rounded-lg transition-colors flex items-center gap-2 font-bold px-4" title="Cerrar">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> Cerrar
+              </button>
+            </div>
+          </div>
+          <div class="flex-1 bg-gray-200 rounded-xl overflow-hidden shadow-2xl flex items-center justify-center relative">
+            @if (cargandoPdf) {
+              <div class="flex flex-col items-center justify-center"><div class="w-16 h-16 border-4 border-uni-blue border-t-transparent rounded-full animate-spin"></div><p class="mt-4 font-bold text-gray-500 animate-pulse">Abriendo documento...</p></div>
+            } @else {
+              <div class="w-[80%] h-[90%] bg-white shadow-lg mx-auto flex flex-col items-center justify-center text-center p-12 relative overflow-hidden animate-in fade-in zoom-in-95">
+                <div class="absolute top-0 left-0 w-full h-8 bg-gray-100 border-b border-gray-300"></div>
+                <svg class="w-24 h-24 text-gray-300 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <h2 class="text-2xl font-extrabold text-gray-800 mb-2">Simulación de Visor</h2>
+                <p class="text-gray-500 max-w-md">Documento: <strong>{{ anexoViendoPdf?.nombre }}</strong></p>
+                <div class="mt-8 flex gap-4 w-full max-w-md"><div class="h-2 bg-gray-200 rounded-full flex-1 animate-pulse"></div><div class="h-2 bg-gray-200 rounded-full w-1/3 animate-pulse"></div></div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+<button (click)="toggleChat()" class="fixed bottom-8 right-8 z-[400] bg-uni-blue hover:bg-blue-800 text-white rounded-full p-4 shadow-[0_10px_40px_rgba(0,74,135,0.4)] transition-all hover:scale-105 group border-2 border-white/20" [class.hidden]="chatAbierto">      <svg class="w-7 h-7 group-hover:animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+      <span class="absolute -top-1 -right-1 bg-uni-orange text-white text-[10px] font-black px-2 py-0.5 rounded-full border border-white shadow-sm">IA</span>
+    </button>
+
+    @if (chatAbierto) {
+      <div class="fixed top-24 right-0 bottom-0 w-full md:w-[380px] bg-white shadow-[-15px_0_40px_rgba(0,0,0,0.08)] border-l border-gray-100 z-[450] flex flex-col animate-in slide-in-from-right duration-300">
+        
+        <div class="px-5 py-4 bg-gradient-to-r from-uni-blue to-[#003A6B] text-white flex justify-between items-center shadow-md z-10 border-b-4 border-uni-orange">
+          <div class="flex items-center gap-3">
+            <div class="bg-white/10 p-2.5 rounded-lg backdrop-blur-sm border border-white/10 shadow-inner">
+              <svg class="w-5 h-5 text-uni-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            </div>
+            <div>
+              <h3 class="font-extrabold text-sm leading-tight tracking-wide">Asistente Acreditación</h3>
+              <p class="text-[10px] text-blue-200 font-bold uppercase tracking-widest mt-0.5">Modelo Semántico Beta</p>
+            </div>
+          </div>
+          <button (click)="toggleChat()" class="text-blue-200 hover:text-white hover:bg-white/10 p-2 rounded-full transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-5 space-y-5 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-gray-50">
+          @for (msg of mensajesChat; track $index) {
+            <div class="flex gap-3 max-w-[90%]" [class.ml-auto]="msg.rol === 'usuario'" [class.flex-row-reverse]="msg.rol === 'usuario'">
+              <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0 shadow-md border-2 border-white" [class.bg-uni-orange]="msg.rol === 'usuario'" [class.bg-uni-blue]="msg.rol === 'bot'">
+                @if (msg.rol === 'usuario') {
+                  <span class="text-white text-[10px] font-black">{{ inicialesUsuario }}</span>
+                } @else {
+                  <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                }
+              </div>
+              <div class="flex flex-col gap-1.5" [class.items-end]="msg.rol === 'usuario'">
+                <div class="p-3.5 rounded-2xl text-[13px] leading-relaxed shadow-sm font-medium" [class.bg-uni-blue]="msg.rol === 'usuario'" [class.text-white]="msg.rol === 'usuario'" [class.rounded-tr-sm]="msg.rol === 'usuario'" [class.bg-white]="msg.rol === 'bot'" [class.text-gray-700]="msg.rol === 'bot'" [class.border]="msg.rol === 'bot'" [class.border-gray-200]="msg.rol === 'bot'" [class.rounded-tl-sm]="msg.rol === 'bot'">
+                  {{ msg.texto }}
+                </div>
+                <span class="text-[9px] text-gray-400 font-bold px-1 uppercase tracking-wider">{{ msg.hora }}</span>
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="p-4 bg-white border-t border-gray-200 z-10 shadow-[0_-10px_20px_rgba(0,0,0,0.03)]">
+          <div class="relative flex items-center">
+            <input type="text" [value]="mensajeUsuario" (input)="mensajeUsuario = cajaMensaje.value" (keyup.enter)="enviarMensajeChat()" #cajaMensaje placeholder="Pregunta por un anexo o resolución..." class="w-full bg-gray-50 border border-gray-300 rounded-full pl-5 pr-12 py-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-uni-orange focus:bg-white transition-all shadow-inner font-medium">
+            <button (click)="enviarMensajeChat()" class="absolute right-2 p-2 bg-uni-blue text-white rounded-full hover:bg-uni-orange transition-all shadow-md disabled:opacity-40 disabled:hover:bg-uni-blue" [disabled]="!mensajeUsuario.trim()">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+            </button>
+          </div>
+          <p class="text-[9px] text-center text-gray-400 mt-2.5 font-bold uppercase tracking-wider">La IA puede cometer errores. Verifica la info.</p>
+        </div>
+
+      </div>
+    }
+    @if (modalConfirmarSalida) {
+      <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center z-[800] p-4 animate-in fade-in zoom-in-95 duration-200">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col border border-gray-100 text-center">
+          <div class="p-6 pt-8">
+            <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-red-100">
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+            </div>
+            <h2 class="text-xl font-extrabold text-gray-800 mb-2">¿Cerrar Sesión?</h2>
+            <p class="text-sm text-gray-500 font-medium">Estás a punto de salir del sistema. El historial de tu asistente IA se borrará por seguridad.</p>
+          </div>
+          <div class="px-6 py-4 bg-gray-50 flex gap-3 justify-center border-t border-gray-100">
+            <button (click)="modalConfirmarSalida = false" class="px-5 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-200 hover:text-gray-800 rounded-xl transition-colors">Cancelar</button>
+            <button (click)="confirmarCerrarSalida()" class="px-5 py-2.5 text-sm font-bold text-white bg-red-500 hover:bg-red-600 rounded-xl shadow-md shadow-red-500/20 transition-all flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Sí, salir ahora</button>
+          </div>
+        </div>
+      </div>
+    }
+  </main>
+  <footer class="bg-white border-t border-gray-200 pt-16 pb-8 w-full relative z-10 shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="flex flex-wrap justify-center md:justify-start gap-8 items-center border-b border-gray-100 pb-8 mb-10">
+        <img src="https://cdn.unimagdalena.edu.co/images/escudo/bg_light/512.png" alt="Escudo Unimagdalena" class="h-16 object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all cursor-pointer">
+        <div class="w-px h-12 bg-gray-200 hidden md:block"></div>
+        <img src="https://cdn.unimagdalena.edu.co/images/acreditacion/512.png" alt="Acreditación Institucional" class="h-14 object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all cursor-pointer">
+        <img src="https://cdn.unimagdalena.edu.co/images/calidad/bg-light/196.png" alt="Certificación de Calidad" class="h-12 object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all cursor-pointer">
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-10 mb-10">
+        <div class="md:col-span-1">
+          <h4 class="text-uni-blue font-extrabold text-xl mb-3 tracking-tight">Gestión de Anexos</h4>
+          <p class="text-xs text-gray-500 font-medium leading-relaxed">Plataforma centralizada para la administración y consulta de documentos de acreditación del programa de Odontología.</p>
+        </div>
+        
+        <div>
+          <h4 class="text-gray-800 font-bold text-xs uppercase tracking-widest mb-4">Enlaces de Interés</h4>
+          <ul class="space-y-3 text-sm text-gray-500 font-medium">
+            <li><a href="https://www.mineducacion.gov.co/" target="_blank" rel="noopener noreferrer" class="hover:text-uni-orange transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-gray-300"></div> Ministerio de Educación</a></li>
+            <li><a href="https://www.colombiaaprende.edu.co/" target="_blank" rel="noopener noreferrer" class="hover:text-uni-orange transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-gray-300"></div> Colombia Aprende</a></li>
+            <li><a href="https://www.renata.edu.co/" target="_blank" rel="noopener noreferrer" class="hover:text-uni-orange transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-gray-300"></div> RENATA</a></li>
+          </ul>
+        </div>
+        
+        <div>
+          <h4 class="text-gray-800 font-bold text-xs uppercase tracking-widest mb-4">Atención al Ciudadano</h4>
+          <ul class="space-y-3 text-sm text-gray-500 font-medium">
+            <li><a href="https://www.unimagdalena.edu.co/Institucional/Transparencia" target="_blank" rel="noopener noreferrer" class="hover:text-uni-orange transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-gray-300"></div> Transparencia</a></li>
+            <li><a href="https://www.unimagdalena.edu.co/pqrsf" target="_blank" rel="noopener noreferrer" class="hover:text-uni-orange transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-gray-300"></div> Preguntas Frecuentes</a></li>
+            <li><a href="https://www.unimagdalena.edu.co/pqrsf" target="_blank" rel="noopener noreferrer" class="hover:text-uni-orange transition-colors flex items-center gap-2"><div class="w-1.5 h-1.5 rounded-full bg-gray-300"></div> Peticiones y Reclamos</a></li>
+          </ul>
+        </div>
+        
+        <div>
+          <h4 class="text-gray-800 font-bold text-xs uppercase tracking-widest mb-4">Contacto</h4>
+          <ul class="space-y-3 text-sm text-gray-500 font-medium">
+            <li>
+              <a href="https://maps.google.com/?q=Carrera+32+No+22+08+Santa+Marta+Colombia" target="_blank" rel="noopener noreferrer" class="flex items-start gap-3 hover:text-uni-orange transition-colors group">
+                <svg class="w-4 h-4 text-gray-400 mt-0.5 shrink-0 group-hover:text-uni-orange transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <span class="leading-snug">Carrera 32 No 22 – 08 <br> Santa Marta, Colombia</span>
+              </a>
+            </li>
+            <li>
+              <a href="mailto:ciudadano@unimagdalena.edu.co" class="flex items-center gap-3 hover:text-uni-orange transition-colors group">
+                <svg class="w-4 h-4 text-gray-400 shrink-0 group-hover:text-uni-orange transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                <span>ciudadano@unimagdalena.edu.co</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="flex flex-col md:flex-row justify-between items-center gap-4 pt-6 border-t border-gray-100">
+        <p class="text-[11px] text-gray-400 font-bold uppercase tracking-wider text-center md:text-left">
+          La Universidad del Magdalena está sujeta a inspección y vigilancia por el Ministerio de Educación Nacional. <br>
+          <span class="font-medium text-gray-500 capitalize">© 2026 Todos los derechos reservados.</span>
+        </p>
+        <div class="flex gap-4 text-xs font-bold text-gray-400 uppercase tracking-widest">
+          <span class="hover:text-uni-blue cursor-pointer transition-colors">Privacidad</span>
+          <span class="w-1 h-1 rounded-full bg-gray-300 self-center"></span>
+          <span class="hover:text-uni-blue cursor-pointer transition-colors">Términos</span>
+        </div>
+      </div>
+      
+    </div>
+  </footer>
+}
