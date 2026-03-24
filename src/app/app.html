@@ -299,7 +299,7 @@
         </div>
       }
     </div>
-   @if (modalFormVisible) {
+ @if (modalFormVisible) {
       <div class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[200] p-4 animate-in fade-in zoom-in-95 duration-200">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col border border-gray-100 relative">
           @if (guardando) {
@@ -316,7 +316,9 @@
             </div>
             <button (click)="cerrarFormulario()" class="text-gray-400 hover:text-red-500 transition-colors p-1 bg-white rounded-full hover:bg-red-50"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
           </div>
-          <div class="p-6 flex flex-col gap-5">
+          
+          <div class="p-6 flex flex-col gap-5" (keydown.enter)="guardarFormulario()">
+            
             <div>
               <label class="block text-xs font-bold uppercase tracking-wide mb-2" [class.text-red-500]="errorNombre" [class.text-gray-500]="!errorNombre">Nombre del Documento @if (errorNombre) { <span class="text-red-500 normal-case">*Obligatorio</span> }</label>
               <input type="text" [value]="anexoFormulario.nombre" (input)="actualizarCampo('nombre', cajaNombre.value)" #cajaNombre placeholder="Ej. Resolución de Acreditación 2024" class="w-full border rounded-lg px-4 py-3 text-sm focus:ring-2 outline-none transition-all" [class.border-red-500]="errorNombre" [class.bg-red-50]="errorNombre" [class.focus:ring-red-500]="errorNombre" [class.border-gray-300]="!errorNombre" [class.bg-gray-50]="!errorNombre" [class.focus:ring-uni-blue]="!errorNombre">
@@ -326,7 +328,9 @@
                 <label class="block text-xs font-bold uppercase tracking-wide mb-2" [class.text-gray-500]="!errorAnio" [class.text-red-500]="errorAnio">
                   Año (Opcional) @if (errorAnio) { <span class="text-[10px] lowercase font-bold italic ml-1">*inválido</span> }
                 </label>
-                <input type="text" maxlength="4" placeholder="Ej. 2026" [value]="anexoFormulario.anio" (input)="validarAnio(cajaAnioForm.value)" #cajaAnioForm 
+                <input type="text" inputmode="numeric" maxlength="4" placeholder="Ej. 2026" [value]="anexoFormulario.anio" 
+                       (keydown)="verificarTeclaAnio($event)"
+                       (input)="validarAnio(cajaAnioForm.value)" #cajaAnioForm 
                        class="w-full border rounded-lg px-4 py-3 text-sm focus:ring-2 outline-none transition-all text-center"
                        [class.border-red-500]="errorAnio" [class.bg-red-50]="errorAnio" [class.focus:ring-red-500]="errorAnio"
                        [class.border-gray-300]="!errorAnio" [class.bg-gray-50]="!errorAnio" [class.focus:ring-uni-blue]="!errorAnio">

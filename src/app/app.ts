@@ -352,7 +352,7 @@ buscar(termino: string, catPrincipal: string, catSecundaria: string, anioSelecci
   }
 
 eliminarAnexo(anexoSeleccionado: any) {
-    // 1. Limpieza total y estricta antes de empezar
+    // 1. Apagamos y DESTRUIMOS cualquier reloj viejo de forma estricta ANTES de hacer nada.
     if (this.contadorId) {
       window.clearInterval(this.contadorId);
       this.contadorId = null;
@@ -365,11 +365,11 @@ eliminarAnexo(anexoSeleccionado: any) {
     this.anexos = this.anexos.filter(a => a.id !== anexoSeleccionado.id);
     this.buscar(this.filtroActualTexto, this.filtroActualCatPrin, this.filtroActualCatSec, this.filtroActualAnio);
 
-    // 2. UX: Blindaje Anti-Congelamiento. Corremos el reloj FUERA del hilo principal de Angular
+    // 2. Encendemos el reloj nuevo TOTALMENTE blindado (Fuera del hilo de Angular)
     this.ngZone.runOutsideAngular(() => {
       this.contadorId = window.setInterval(() => {
-        // Volvemos a entrar a Angular SOLO para actualizar el número exacto
-        this.ngZone.run(() => {
+        // Volvemos a entrar a Angular SOLO para cambiar el número y pintar la pantalla
+        this.ngZone.run(() => { 
           this.tiempoRestante--;
           
           if (this.tiempoRestante <= 0) {
@@ -380,15 +380,14 @@ eliminarAnexo(anexoSeleccionado: any) {
             this.toastVisible = false;
             this.anexoEliminadoTemporal = null;
           }
-          // Forzamos a la pantalla a pintar el nuevo segundo de inmediato
-          this.cdr.detectChanges();
+          this.cdr.detectChanges(); // Forzamos el repintado del número en pantalla
         });
       }, 1000);
     });
   }
 
   deshacerEliminacion() {
-    // 3. Matamos el proceso independiente
+    // 3. Al deshacer, matamos el reloj estrictamente.
     if (this.contadorId) {
       window.clearInterval(this.contadorId);
       this.contadorId = null;
@@ -499,20 +498,36 @@ abrirFormularioEditar(anexo: any) {
       this.anexoFormulario.nombre = '';
     }
   }
-validarAnio(valor: any) {
+// UX: Interceptor de teclado en el aire para el Año
+  verificarTeclaAnio(event: KeyboardEvent) {
+    // Permitimos borrar, mover flechas, tabulador y el atajo de Enter
+    const teclasPermitidas = ['Backspace', 'Tab', 'ArrowLeft', 'ArrowRight', 'Delete', 'Enter'];
+    
+    // Si la tecla NO es un número (del teclado principal o numpad) y NO es permitida...
+    if (!teclasPermitidas.includes(event.key) && !/^[0-9]$/.test(event.key)) {
+      event.preventDefault(); // 1. Bloquea la letra antes de que se escriba
+      this.errorAnio = true;  // 2. UX: Feedback visual inmediato (Pone la caja roja)
+      
+      // 3. Quitamos el rojo después de 800ms para que sea solo un "parpadeo" de advertencia
+      setTimeout(() => {
+        this.validarAnio(this.anexoFormulario.anio);
+        this.cdr.detectChanges();
+      }, 800);
+    }
+  }
+
+  validarAnio(valor: any) {
     if (!valor) {
       this.anexoFormulario.anio = '';
       this.errorAnio = false;
       return;
     }
 
-    // Limpiamos letras
     const valorLimpio = String(valor).replace(/\D/g, '');
     this.anexoFormulario.anio = valorLimpio;
     
     if (valorLimpio.length > 0) {
       const numAnio = parseInt(valorLimpio, 10);
-      // UX: Error estricto SI tiene menos de 4 números, O si es menor a 1900, O si es mayor a 2100
       this.errorAnio = valorLimpio.length < 4 || numAnio < 1900 || numAnio > 2100;
     } else {
       this.errorAnio = false;
