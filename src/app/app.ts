@@ -1,5 +1,9 @@
+import { AnexoService } from './services/anexo';
 import { Component, ChangeDetectorRef, NgZone, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { AuthService } from './services/auth'; 
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+
 
 @Component({
   selector: 'app-root',
@@ -23,6 +27,7 @@ export class App {
   correoRegistro = '';
   passRegistro = '';
   correoLogin = '';
+  passLogin = ''; 
 
   // Errores individuales
   errorRegNombre = false;
@@ -80,14 +85,31 @@ export class App {
   // UX: Generador dinámico de años en orden descendente (Desde el año actual hasta 1950)
   anios = Array.from({length: new Date().getFullYear() - 1950 + 1}, (_, i) => (new Date().getFullYear() - i).toString());
 
-  // --- VARIABLES DE NOTIFICACIONES ---
-  toastVisible = false;
+  // --- VARIABLES MODAL ACTUALIZADOS (UX) ---
+  registroTiemposEdicion: any = {};
+  modalActualizadosVisible = false;
+  anexosRecientes: any[] = [];
+// UX: Memoria permanente en disco duro para que no resuciten al recargar
+  get idsOcultosActualizados(): string[] {
+    return JSON.parse(localStorage.getItem('ocultosUX') || '[]');
+  }
+  set idsOcultosActualizados(valores: string[]) {
+    localStorage.setItem('ocultosUX', JSON.stringify(valores));
+  }
+
+  // --- VARIABLES DESHACER DESCARTE (CTRL+Z) ---
+ descartadosRecientes: any[] = [];
+  toastDescarteVisible = false;
+  tiempoDescarte = 5;
+  contadorDescarteId: any;  toastVisible = false;
   toastExitoVisible = false;
   modalConfirmarSalida = false; // UX: Modal personalizado de salida
-  estadoDescarga: 'iniciada' | 'finalizada' | 'ninguna' = 'ninguna';
-  mensajeExito = '';
+// UX: Lista de notificaciones concurrentes (Permite apilamiento de toasts)
+  listaNotificacionesDescarga: {id: number, estado: string, nombre: string}[] = [];
   
+  mensajeExito = '';  
   anexoEliminadoTemporal: any = null;
+  pendientesEliminacion: any[] = [];
   tiempoRestante = 10;
   contadorId: any;
   descargaTimeout1: any;
@@ -101,6 +123,7 @@ export class App {
   errorCatPrin = false;
   errorCatSec = false;
   errorAnio = false;
+  indiceVisualEdicion: number = 0;
   
 
   // UX: Generador dinámico. Solo saca los años que EXISTEN en la base de datos (anexos).
@@ -112,6 +135,7 @@ export class App {
   }
   guardando = false;
   archivoSeleccionado: File | null = null;
+  archivoModificado = false;
   archivoInfo = { nombre: '', tamano: '', colorBase: '', colorIcono: '', label: '' };
 
   // --- VARIABLES DE PDF ---
@@ -126,11 +150,7 @@ export class App {
     { rol: 'bot', texto: '¡Hola! Soy tu asistente virtual de Acreditación. ¿Buscando algún PEP o Resolución específica?', hora: this.obtenerHoraActual() }
   ];
 
- anexos = [
-    { id: '1', nombre: 'Certificado Acreditación Internacional', anio: 2023, categoriaPrincipal: 'PROCESOS ACADÉMICOS', categoriaSecundaria: 'CALIDAD', descripcion: 'Resolución del Ministerio de Educación por medio del cual se otorga la acreditación...' },
-    { id: '2', nombre: 'PEP de Odontología 2021', anio: 2022, categoriaPrincipal: 'PROCESOS ACADÉMICOS', categoriaSecundaria: 'PROCESOS ACADÉMICOS', descripcion: 'Proyecto Educativo del Programa de Odontología (Diciembre 2021). Contiene los lineamientos...' },
-    { id: '3', nombre: 'Plan de Desarrollo Unimagdalena 2020-2030', anio: 2020, categoriaPrincipal: 'INCLUSIÓN', categoriaSecundaria: 'ADMINISTRATIVO', descripcion: 'Plan de Desarrollo Universitario Comprometida 2020-2030...' }
-  ];
+anexos: any[] = [];
 
   anexosFiltrados = [...this.anexos];
   totalAnexos = this.anexos.length;
@@ -148,23 +168,47 @@ export class App {
     this.passEspecialValida = this.especialRegex.test(pass);
     this.passLongitudValida = pass.length >= 8;
   }
-  constructor(private cdr: ChangeDetectorRef, private ngZone: NgZone) {}
-
-  @HostListener('document:keydown', ['$event'])
+constructor(private cdr: ChangeDetectorRef, private anexoService: AnexoService, private ngZone: NgZone, private authService: AuthService, private sanitizer: DomSanitizer) {}
+@HostListener('document:keydown', ['$event'])
   manejarAtajosTeclado(event: KeyboardEvent) {
+ // 1. Atajo para Deshacer (Ctrl + Z)
     if (event.ctrlKey && event.key.toLowerCase() === 'z') {
-      if (this.toastVisible && this.anexoEliminadoTemporal) {
+      if (this.toastVisible && this.pendientesEliminacion.length > 0) {
         event.preventDefault();
         this.deshacerEliminacion();
+      } else if (this.toastDescarteVisible && this.descartadosRecientes) {
+        event.preventDefault();
+        this.deshacerDescarte();
       }
     }
+    // 2. Atajo para Cerrar ventanas (Escape)
     if (event.key === 'Escape') {
       if (this.hayFiltrosActivos() && !this.modalFormVisible && !this.modalPdfVisible) {
         this.limpiarFiltros();
       }
     }
-  }
 
+    // --- LO NUEVO: 3. Enter Inteligente (Accesibilidad y Eficiencia UX) ---
+    if (event.key === 'Enter') {
+      if (this.modalFormVisible) {
+        const target = event.target as HTMLElement;
+        
+        // Respetamos los estándares nativos del navegador web:
+        // A. Si está en la Descripción (textarea), dejamos que haga el salto de línea normal.
+        if (target.tagName === 'TEXTAREA') return;
+        
+        // B. Si está en una Lista (select), dejamos que la abra/cierre normalmente.
+        if (target.tagName === 'SELECT') return;
+        
+        // C. Si está parado justo sobre el botón "Cancelar", dejamos que lo hunda.
+        if (target.tagName === 'BUTTON' && target.innerText.toLowerCase().includes('cancelar')) return;
+        
+        // Si no está haciendo nada de lo anterior (ej. está en el vacío o en un input normal), GUARDAMOS.
+        event.preventDefault();
+        this.guardarFormulario();
+      }
+    }
+  }
   cambiarModoAuth(modo: 'login' | 'registro') {
     this.modoAuth = modo;
     this.errorToken = false;
@@ -238,9 +282,32 @@ export class App {
     }
     
     // Éxito: Guardar datos y entrar
-   // Éxito: Guardar datos y entrar
-    this.nombreUsuarioActivo = `${this.nombreRegistro} ${this.apellidoRegistro}`;
-    this.inicialesUsuario = (this.nombreRegistro.charAt(0) + this.apellidoRegistro.charAt(0)).toUpperCase();
+   // Armamos el usuario para Spring Boot
+    const nuevoUsuario = {
+      nombre: this.nombreRegistro,
+      apellido: this.apellidoRegistro,
+      correo: this.correoRegistro + '@unimagdalena.edu.co', // Pegamos el dominio
+      password: this.passRegistro,
+      rol: this.regEsAdmin ? 'ADMINISTRADOR' : 'DOCENTE'
+    };
+
+    // Llamamos al backend para registrarlo
+    this.authService.register(nuevoUsuario).subscribe({
+      next: (respuesta) => {
+        // Guardamos el token que nos devuelve
+        this.authService.guardarToken(respuesta.token, respuesta.rol);
+        
+        this.nombreUsuarioActivo = `${this.nombreRegistro} ${this.apellidoRegistro}`;
+        this.inicialesUsuario = (this.nombreRegistro.charAt(0) + this.apellidoRegistro.charAt(0)).toUpperCase();
+        this.correoLogin = this.correoRegistro; // Recordar correo
+        
+        this.iniciarSesion(true); // Entramos al dashboard
+      },
+      error: (err) => {
+        alert('Ocurrió un error al crear la cuenta. Quizás el correo ya existe.');
+        console.error(err);
+      }
+    });
     
     // UX: Recordar el correo para la próxima vez que inicie sesión
     this.correoLogin = this.correoRegistro;
@@ -248,15 +315,56 @@ export class App {
     this.iniciarSesion(true);
   }
 
-  iniciarSesion(desdeRegistro = false) {
-    if (!desdeRegistro) {
-      this.nombreUsuarioActivo = 'Diana Escobar';
-      this.inicialesUsuario = 'DE';
-    }
-    this.pantallaActual = 'dashboard';
-    this.buscar('', '', '', '');
-  }
+ iniciarSesion(desdeRegistro = false) {
+    if (desdeRegistro) {
+      this.pantallaActual = 'dashboard';
+      this.cargarAnexosDesdeBD();
+      this.buscar('', '', '', '');
+    } else {
+      // 1. Armamos el paquete para el backend (fíjate que le pegamos el @)
+      const credenciales = {
+        correo: this.correoLogin + '@unimagdalena.edu.co',
+        password: this.passLogin
+      };
 
+      // --- ¡EL CHISMOSO! ---
+      // Esto nos dirá exactamente qué se está enviando al servidor
+      console.log('Intentando entrar con:', credenciales);
+
+      // 2. Llamamos a Spring Boot
+      this.authService.login(credenciales).subscribe({
+        next: (respuesta) => {
+          // Si todo sale bien, guardamos el Token
+          this.authService.guardarToken(respuesta.token, respuesta.rol);
+          
+          this.nombreUsuarioActivo = respuesta.correo;
+          this.rolActual = respuesta.rol === 'ADMINISTRADOR' ? 'Administrador' : 'Docente';
+          this.inicialesUsuario = respuesta.correo.substring(0, 2).toUpperCase();
+          
+          this.pantallaActual = 'dashboard';
+          this.cargarAnexosDesdeBD();
+          this.buscar('', '', '', '');
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          alert('Error: Correo o contraseña incorrectos.');
+          console.error(err);
+        }
+      });
+    }
+  }
+ cargarAnexosDesdeBD() {
+    this.anexoService.getAnexos().subscribe({
+      next: (data: any[]) => { // <-- Asegúrate de poner : any[] para que TypeScript no pelee
+        // ¡EL ARREGLO ESTÁ AQUÍ! Ordenamos por ID ascendente apenas llegan los datos
+        this.anexos = data.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+        
+        this.buscar(this.filtroActualTexto, this.filtroActualCatPrin, this.filtroActualCatSec, this.filtroActualAnio); // Refresca la tabla visual
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => console.error('Error cargando anexos:', err)
+    });
+  }
 cerrarSesion() {
     this.menuAbierto = false; // Cerramos el menú desplegable
     this.modalConfirmarSalida = true; // Abrimos nuestro modal hermoso
@@ -264,10 +372,19 @@ cerrarSesion() {
 confirmarCerrarSalida() {
     this.modalConfirmarSalida = false;
     
+    // --- ¡LO NUEVO! (El "Flush" de UX) ---
+    // Si el usuario decide salir, ejecutamos INMEDIATAMENTE todos los borrados 
+    // que estaban en el limbo esperando que el reloj llegara a cero.
+    if (this.pendientesEliminacion && this.pendientesEliminacion.length > 0) {
+      console.log('Forzando borrado definitivo por cierre de sesión...');
+      this.ejecutarBorradosEnBD();
+    }
+    // ------------------------------------
+    
     // UX: Privacidad y Control de Usuario. Limpiamos y MATAMOS TODO el rastro.
     this.pantallaActual = 'login';
     this.chatAbierto = false;
-    this.estadoDescarga = 'ninguna';
+    this.listaNotificacionesDescarga = [];
     this.toastVisible = false;
     this.toastExitoVisible = false;
     
@@ -291,7 +408,6 @@ confirmarCerrarSalida() {
 
     this.cambiarModoAuth('login');
   }
-
   cambiarRol(nuevoRol: 'Administrador' | 'Docente' | 'Estudiante') {
     this.rolActual = nuevoRol;
     this.menuAbierto = false;
@@ -336,116 +452,179 @@ buscar(termino: string, catPrincipal: string, catSecundaria: string, anioSelecci
     this.buscar('', '', '', '');
     this.cdr.detectChanges();
   }
-
-  actualizarDashboard() {
+actualizarDashboard() {
     this.totalAnexos = this.anexosFiltrados.length;
-    this.actualizados = this.anexosFiltrados.filter(a => a.anio >= 2022).length;
-
-    if (this.anexosFiltrados.length > 0) {
-      const anios = this.anexosFiltrados.map(a => a.anio);
-      const min = Math.min(...anios);
-      const max = Math.max(...anios);
-      this.rangoAnios = min === max ? `${min}` : `${min} - ${max}`;
-    } else {
-      this.rangoAnios = '-';
-    }
-  }
-
-eliminarAnexo(anexoSeleccionado: any) {
-    // 1. Apagamos y DESTRUIMOS cualquier reloj viejo de forma estricta ANTES de hacer nada.
-    if (this.contadorId) {
-      window.clearInterval(this.contadorId);
-      this.contadorId = null;
-    }
+    const memoriaTiempos = JSON.parse(localStorage.getItem('memoriaAnexosUX') || '{}');
     
-    this.anexoEliminadoTemporal = anexoSeleccionado;
-    this.tiempoRestante = 10;
-    this.toastVisible = true;
+    // UX: Definimos qué es "Reciente" (30 días en milisegundos)
+    const treintaDiasEnMs = 30 * 24 * 60 * 60 * 1000;
+    const ahora = Date.now();
 
+    this.actualizados = this.anexosFiltrados.filter(a => {
+        const idStr = String(a.id);
+        const tiempoEdicion = memoriaTiempos[idStr] || 0;
+        const esCambioReciente = (ahora - tiempoEdicion) < treintaDiasEnMs && tiempoEdicion > 0;
+        const esAnioNuevo = parseInt(a.anio, 10) >= 2022;
+
+        // Es actualizado si tiene año nuevo O se cambió hace poco
+        // PERO solo si el usuario no lo ha descartado manualmente
+        return (esAnioNuevo || esCambioReciente) && !this.idsOcultosActualizados.includes(idStr);
+    }).length;
+
+    // ... (el resto del código de rangoAnios se queda igual)
+    const aniosValidos = this.anexosFiltrados.map(a => parseInt(a.anio, 10)).filter(anio => !isNaN(anio) && anio > 0); 
+    if (aniosValidos.length > 0) {
+      const min = Math.min(...aniosValidos);
+      const max = Math.max(...aniosValidos);
+      this.rangoAnios = min === max ? `${min}` : `${min} - ${max}`;
+    } else { this.rangoAnios = '-'; }
+    this.cdr.detectChanges();
+  }
+eliminarAnexo(anexoSeleccionado: any) {
+    // 1. Ocultar de la vista inmediatamente (Optimismo UI)
     this.anexos = this.anexos.filter(a => a.id !== anexoSeleccionado.id);
     this.buscar(this.filtroActualTexto, this.filtroActualCatPrin, this.filtroActualCatSec, this.filtroActualAnio);
 
-    // 2. Encendemos el reloj nuevo TOTALMENTE blindado (Fuera del hilo de Angular)
+    // 2. Agregar a la pila de pendientes
+    this.pendientesEliminacion.push(anexoSeleccionado);
+
+    // 3. Reiniciar el reloj a 10 cada vez que se borra uno nuevo (UX consistente)
+    this.tiempoRestante = 10;
+    this.toastVisible = true;
+
+    // 4. Limpiamos cualquier reloj anterior para que NO choquen
+    if (this.contadorId) {
+      window.clearInterval(this.contadorId);
+    }
+
+    // 5. Iniciamos un único reloj maestro
     this.ngZone.runOutsideAngular(() => {
       this.contadorId = window.setInterval(() => {
-        // Volvemos a entrar a Angular SOLO para cambiar el número y pintar la pantalla
-        this.ngZone.run(() => { 
+        this.ngZone.run(() => {
           this.tiempoRestante--;
-          
+
+          // Cuando el reloj llega a cero de verdad, ejecutamos la purga
           if (this.tiempoRestante <= 0) {
-            if (this.contadorId) {
-              window.clearInterval(this.contadorId);
-              this.contadorId = null;
-            }
+            window.clearInterval(this.contadorId);
+            this.contadorId = null;
             this.toastVisible = false;
-            this.anexoEliminadoTemporal = null;
+            
+            this.ejecutarBorradosEnBD();
           }
-          this.cdr.detectChanges(); // Forzamos el repintado del número en pantalla
+          this.cdr.detectChanges();
         });
       }, 1000);
     });
   }
 
-  deshacerEliminacion() {
-    // 3. Al deshacer, matamos el reloj estrictamente.
-    if (this.contadorId) {
-      window.clearInterval(this.contadorId);
-      this.contadorId = null;
-    }
-    
-    if (this.anexoEliminadoTemporal) {
-      this.anexos.push(this.anexoEliminadoTemporal);
-      this.anexos.sort((a, b) => parseInt(a.id) - parseInt(b.id));
-      this.anexoEliminadoTemporal = null;
-    }
-    
-    this.toastVisible = false;
-    this.buscar(this.filtroActualTexto, this.filtroActualCatPrin, this.filtroActualCatSec, this.filtroActualAnio);
-    this.cdr.detectChanges();
+  ejecutarBorradosEnBD() {
+    const elementosABorrar = [...this.pendientesEliminacion];
+    this.pendientesEliminacion = [];
+
+    elementosABorrar.forEach(item => {
+      this.anexoService.eliminarAnexo(item.id).subscribe({
+        next: () => {
+          console.log(`Anexo #${item.id} eliminado permanentemente de la BD.`);
+        },
+        error: (err: any) => {
+          console.warn(`Sincronizando con la BD por conflicto en anexo #${item.id}...`);
+          
+          this.cargarAnexosDesdeBD();
+        }
+      });
+    });
   }
-  abrirFormularioCrear() {
-  this.modoFormulario = 'crear';
-  this.anexoFormulario = { 
-    nombre: '', 
-    anio: '', 
-    categoriaPrincipal: '', 
-    categoriaSecundaria: '', 
-    descripcion: '' 
-  };
-  this.errorNombre = false;
-  this.errorCatPrin = false;
-  this.errorCatSec = false;
-  this.archivoSeleccionado = null; // UX: Aseguramos que empiece limpio sin iconos falsos
-  this.modalFormVisible = true;
-}
-abrirFormularioEditar(anexo: any) {
+  deshacerEliminacion() {
+    if (this.pendientesEliminacion.length > 0) {
+      // Sacamos el último elemento de la pila (Lógica LIFO para Ctrl+Z progresivo)
+      const ultimoSalvado = this.pendientesEliminacion.pop();
+      
+      if (ultimoSalvado) {
+        // Lo devolvemos a la tabla y ORDENAMOS a su posición original
+        this.anexos.push(ultimoSalvado);
+        this.anexos.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+        this.buscar(this.filtroActualTexto, this.filtroActualCatPrin, this.filtroActualCatSec, this.filtroActualAnio);
+      }
+
+      // Si ya vaciamos la pila, apagamos el toast y el reloj
+      if (this.pendientesEliminacion.length === 0) {
+        this.toastVisible = false;
+        if (this.contadorId) {
+          window.clearInterval(this.contadorId);
+          this.contadorId = null;
+        }
+      } else {
+        // Si aún quedan, reiniciamos el tiempo para que el usuario respire
+        this.tiempoRestante = 10;
+      }
+      this.cdr.detectChanges();
+    }
+  }
+ abrirFormularioCrear() {
+    this.modoFormulario = 'crear';
+    this.anexoFormulario = { nombre: '', anio: '', categoriaPrincipal: '', categoriaSecundaria: '', descripcion: '' };
+    
+    // UX: Limpiamos TODOS los fantasmas de errores anteriores
+    this.errorNombre = false;
+    this.errorCatPrin = false;
+    this.errorCatSec = false;
+    this.errorAnio = false; // <-- ESTE FALTABA
+    
+    this.archivoSeleccionado = null;
+    this.archivoModificado = false; // Limpiamos seguridad
+    this.modalFormVisible = true;
+  }
+abrirFormularioEditar(anexo: any, numeroFila: number = 0) {
+    this.indiceVisualEdicion = numeroFila; 
     this.modoFormulario = 'editar';
     
     this.anexoFormulario = { 
       ...anexo, 
-      // UX: Si el anexo dice 'Sin Asignar', la lista desplegable debe mostrarse vacía
       anio: anexo.anio === 'Sin Asignar' ? '' : anexo.anio, 
       categoriaPrincipal: anexo.categoriaPrincipal ? anexo.categoriaPrincipal.toUpperCase() : '',
       categoriaSecundaria: anexo.categoriaSecundaria ? anexo.categoriaSecundaria.toUpperCase() : '' 
     };
+    
+    // UX: Limpiamos TODOS los fantasmas de errores anteriores
     this.errorNombre = false;
     this.errorCatPrin = false;
     this.errorCatSec = false;
+    this.errorAnio = false; // <-- ¡AQUÍ ESTABA EL FANTASMA!
     
-    this.archivoSeleccionado = new File([""], anexo.nombre + ".pdf", { type: "application/pdf" });
-    this.archivoInfo = {
-      nombre: anexo.nombre + ".pdf",
-      tamano: "2.45",
-      colorBase: 'border-red-200 bg-red-50',
-      colorIcono: 'bg-red-100 text-red-600 border-red-200',
-      label: 'PDF'
-    };
-    
+    // UX: 1. Asumimos que está vacío al inicio (mostramos la zona punteada para subir)
+    this.archivoSeleccionado = null;
+    this.archivoModificado = false; 
     this.modalFormVisible = true;
+
+    // UX: 2. Hacemos un "Ping" silencioso al servidor para ver si el archivo existe
+    this.anexoService.verArchivoFisico(anexo.id).subscribe({
+      next: (blob: Blob) => {
+        if (blob && blob.size > 0 && !blob.type.includes('text') && !blob.type.includes('json')) {
+          this.archivoSeleccionado = new File([""], anexo.nombre + ".pdf", { type: "application/pdf" });
+          this.archivoInfo = {
+            nombre: "Doc_Actual_" + anexo.nombre + ".pdf",
+            tamano: this.obtenerTamanoArchivoMB(blob.size),
+            colorBase: 'border-red-200 bg-red-50',
+            colorIcono: 'bg-red-100 text-red-600 border-red-200',
+            label: 'PDF'
+          };
+          this.cdr.detectChanges();
+        }
+      },
+      error: () => {
+        this.cdr.detectChanges();
+      }
+    });
   }
-  cerrarFormulario() {
+ cerrarFormulario() {
     this.modalFormVisible = false;
+    
+    // UX: Limpiamos la basura por si canceló a la mitad de un error
     this.errorNombre = false;
+    this.errorCatPrin = false;
+    this.errorCatSec = false;
+    this.errorAnio = false; 
+    
     this.archivoSeleccionado = null;
     this.guardando = false;
   }
@@ -457,11 +636,12 @@ abrirFormularioEditar(anexo: any) {
     }
   }
 
-  seleccionarArchivo(event: Event) {
+ seleccionarArchivo(event: Event) {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
       this.archivoSeleccionado = file;
+      this.archivoModificado = true; // ¡ESTO ES CLAVE! Sabemos que es un archivo nuevo real
       
       const nombreSinExt = file.name.replace(/\.[^/.]+$/, "");
       const ext = file.name.split('.').pop()?.toLowerCase() || '';
@@ -492,8 +672,9 @@ abrirFormularioEditar(anexo: any) {
     input.value = '';
   }
 
-  removerArchivo() {
+ removerArchivo() {
     this.archivoSeleccionado = null;
+    this.archivoModificado = false; // Limpiamos seguridad
     if (this.modoFormulario === 'crear') {
       this.anexoFormulario.nombre = '';
     }
@@ -533,108 +714,297 @@ abrirFormularioEditar(anexo: any) {
       this.errorAnio = false;
     }
   }
+guardarFormulario() {
+    // 1. VALIDACIONES RESTAURADAS (Aquí estaba el error, ¡volvieron los rojos!)
+    this.errorNombre = !this.anexoFormulario.nombre || this.anexoFormulario.nombre.trim() === '';
+    this.errorCatPrin = !this.anexoFormulario.categoriaPrincipal || this.anexoFormulario.categoriaPrincipal.trim() === '';
+    this.errorCatSec = !this.anexoFormulario.categoriaSecundaria || this.anexoFormulario.categoriaSecundaria.trim() === '';
 
-  guardarFormulario() {
-    this.errorNombre = !this.anexoFormulario.nombre?.trim();
-    this.errorCatPrin = !this.anexoFormulario.categoriaPrincipal;
-    this.errorCatSec = !this.anexoFormulario.categoriaSecundaria;
-
-    // Re-validar el año justo antes de guardar por si el usuario lo dejó a medias
-    const anioStr = this.anexoFormulario.anio ? String(this.anexoFormulario.anio) : '';
-    if (anioStr.length > 0) {
-      const numAnio = parseInt(anioStr, 10);
-      this.errorAnio = anioStr.length < 4 || numAnio < 1900 || numAnio > 2100;
-    } else {
-      this.errorAnio = false;
-    }
-
-    // Detener si hay ALGÚN error
+    // Si falta algo, detenemos el guardado y mostramos los errores en pantalla
     if (this.errorNombre || this.errorCatPrin || this.errorCatSec || this.errorAnio) {
-      this.cdr.detectChanges();
+      this.cdr.detectChanges(); 
       return;
     }
 
     this.guardando = true;
     this.cdr.detectChanges();
 
-    setTimeout(() => {
-      // Guardamos el año (se guarda vacío si no asignó ninguno)
-      const anioParaGuardar = this.anexoFormulario.anio;
+    const datosParaGuardar: any = {
+      nombre: this.anexoFormulario.nombre,
+      anio: this.anexoFormulario.anio,
+      categoriaPrincipal: this.anexoFormulario.categoriaPrincipal,
+      categoriaSecundaria: this.anexoFormulario.categoriaSecundaria,
+      descripcion: this.anexoFormulario.descripcion
+    };
 
-      if (this.modoFormulario === 'crear') {
-        const ids = this.anexos.map(a => parseInt(a.id));
-        const nuevoId = ids.length > 0 ? (Math.max(...ids) + 1).toString() : '1';
-        
-        this.anexos.push({
-          id: nuevoId,
-          nombre: this.anexoFormulario.nombre,
-          anio: anioParaGuardar,
-          categoriaPrincipal: this.anexoFormulario.categoriaPrincipal,
-          categoriaSecundaria: this.anexoFormulario.categoriaSecundaria,
-          descripcion: this.anexoFormulario.descripcion
-        });
-      } else {
-        const index = this.anexos.findIndex(a => a.id === this.anexoFormulario.id);
-        if (index !== -1) {
-          this.anexos[index] = { 
-            ...this.anexos[index], 
-            ...this.anexoFormulario,
-            anio: anioParaGuardar 
-          };
+    if (this.anexoFormulario.id) { 
+      datosParaGuardar.id = this.anexoFormulario.id; 
+    }
+
+    const obs = this.anexoFormulario.id 
+      ? this.anexoService.actualizarAnexo(this.anexoFormulario.id, datosParaGuardar)
+      : this.anexoService.guardarAnexo(datosParaGuardar);
+
+    obs.subscribe({
+      next: (res: any) => {
+        const idReal = this.anexoFormulario.id || res.id;
+        const idStr = String(idReal);
+
+        // --- UX: RESURRECCIÓN DE DESCARTADOS ---
+        this.idsOcultosActualizados = this.idsOcultosActualizados.filter(id => id !== idStr);
+
+        // --- UX: SINCRONIZACIÓN INMEDIATA ---
+        if (this.anexoFormulario.id) {
+          const index = this.anexos.findIndex(a => String(a.id) === idStr);
+          if (index !== -1) { 
+            this.anexos[index] = { ...this.anexos[index], ...datosParaGuardar }; 
+          }
+        } else {
+          this.anexos.push(res);
         }
+
+        // --- UX: MEMORIA EN DISCO DURO ---
+        const memoriaTiempos = JSON.parse(localStorage.getItem('memoriaAnexosUX') || '{}');
+        memoriaTiempos[idStr] = Date.now();
+        localStorage.setItem('memoriaAnexosUX', JSON.stringify(memoriaTiempos));
+
+        // Refrescamos la tabla y el dashboard
+        this.buscar(this.filtroActualTexto, this.filtroActualCatPrin, this.filtroActualCatSec, this.filtroActualAnio);
+
+        // --- LÓGICA DEL ARCHIVO FÍSICO ---
+        if (this.archivoSeleccionado && (this.modoFormulario === 'crear' || this.archivoModificado)) {
+          this.anexoService.subirArchivoFisico(idReal, this.archivoSeleccionado).subscribe({
+            next: () => this.finalizarGuardado('Cambios y documento guardados.'),
+            error: () => this.finalizarGuardado('Datos guardados, pero falló el archivo.')
+          });
+        } else {
+          this.finalizarGuardado('¡Cambios guardados correctamente!');
+        }
+      },
+      error: () => { 
+        this.guardando = false; 
+        this.cdr.detectChanges(); 
       }
-
-      this.anexos.sort((a, b) => parseInt(a.id) - parseInt(b.id));
-      this.buscar(this.filtroActualTexto, this.filtroActualCatPrin, this.filtroActualCatSec, this.filtroActualAnio);
-      
-      this.guardando = false;
-      this.modalFormVisible = false;
-
-      this.toastExitoVisible = true;
-      this.mensajeExito = this.modoFormulario === 'crear' ? 'El anexo fue cargado y guardado en el sistema correctamente.' : 'Los cambios del documento fueron actualizados con éxito.';
-      this.cdr.detectChanges();
-      
-      setTimeout(() => {
-        this.toastExitoVisible = false;
-        this.cdr.detectChanges();
-      }, 4000);
-    }, 1500);
+    });
   }
-  abrirPdf(anexo: any) {
+  finalizarGuardado(mensaje: string) {
+    this.cargarAnexosDesdeBD(); // Refrescamos la tabla
+    this.guardando = false;
+    this.modalFormVisible = false;
+    this.toastExitoVisible = true;
+    this.mensajeExito = mensaje;
+    this.cdr.detectChanges();
+
+    setTimeout(() => {
+      this.toastExitoVisible = false;
+      this.cdr.detectChanges();
+    }, 4000);
+  }
+  
+
+  // 1. Agrega esta variable justo arriba del método para guardar la URL segura
+  urlPdfReal: any = null; 
+  errorArchivo = false;
+
+abrirPdf(anexo: any) {
     this.anexoViendoPdf = anexo;
     this.cargandoPdf = true;
     this.modalPdfVisible = true;
+    
+    // 1. Limpiamos TODO rastro del documento anterior
+    this.errorArchivo = false;
+    this.urlPdfReal = null; 
 
-    // Temporizador limpio, Angular detecta el cambio automáticamente
-    setTimeout(() => {
-      this.cargandoPdf = false;
-      this.cdr.detectChanges();
-    }, 1200);
+    // Usamos el servicio seguro para traer el archivo con nuestro Token
+    this.anexoService.verArchivoFisico(anexo.id).subscribe({
+      next: (blob: Blob) => {
+        
+        // --- ¡EL BLINDAJE DE UX ESTÁ AQUÍ! ---
+        // Verificamos si el archivo está vacío (0 bytes) o si el servidor nos mandó un error en formato texto/json por accidente
+        if (!blob || blob.size === 0 || blob.type.includes('text') || blob.type.includes('json')) {
+          console.warn('El archivo está registrado pero físicamente vacío o corrupto en el servidor.');
+          this.cargandoPdf = false;
+          this.errorArchivo = true; // Forzamos nuestro Empty State bonito
+          this.cdr.detectChanges();
+          return; // Abortamos para que no cargue el iframe roto
+        }
+        // ------------------------------------
+
+        // Si pasó la aduana, armamos la URL mágica
+        const objectUrl = URL.createObjectURL(blob);
+        this.urlPdfReal = this.sanitizer.bypassSecurityTrustResourceUrl(objectUrl);
+        
+        this.cargandoPdf = false;
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => {
+        console.error('Error al cargar el PDF', err);
+        this.cargandoPdf = false;
+        this.errorArchivo = true; // Forzamos nuestro Empty State bonito
+        this.cdr.detectChanges();
+      }
+    });
   }
-
   cerrarPdf() {
     this.modalPdfVisible = false;
     this.anexoViendoPdf = null;
   }
 
-  descargarPdfRapido() {
-    if (this.estadoDescarga !== 'ninguna') return;
+// UX: Permite múltiples descargas concurrentes (Apilamiento dinámico)
+  descargarPdfRapido(anexoDesdeTabla: any = null) {
+    const anexoADescargar = anexoDesdeTabla || this.anexoViendoPdf;
+    if (!anexoADescargar) return;
 
-    this.estadoDescarga = 'iniciada';
+    // CREAMOS UNA NOTIFICACIÓN ÚNICA PARA ESTA ACCIÓN
+    const idNotificacion = Date.now(); 
+    const nuevaNotificacion = {
+      id: idNotificacion,
+      estado: 'iniciada',
+      nombre: anexoADescargar.nombre
+    };
+
+    // LA AGREGAMOS A LA LISTA 
+    this.listaNotificacionesDescarga.push(nuevaNotificacion);
     this.cdr.detectChanges();
 
-    if (this.descargaTimeout1) clearTimeout(this.descargaTimeout1);
-    if (this.descargaTimeout2) clearTimeout(this.descargaTimeout2);
+    this.anexoService.verArchivoFisico(anexoADescargar.id).subscribe({
+      next: (blob: Blob) => {
+        const index = this.listaNotificacionesDescarga.findIndex(n => n.id === idNotificacion);
+        if (index === -1) return; 
 
-    this.descargaTimeout1 = setTimeout(() => {
-      this.estadoDescarga = 'finalizada';
-      this.cdr.detectChanges();
+        // Blindaje anti-0 bytes
+        if (!blob || blob.size === 0 || blob.type.includes('text') || blob.type.includes('json')) {
+          this.listaNotificacionesDescarga[index].estado = 'error_vacio';
+          this.cdr.detectChanges();
+          this.iniciarTemporizadorRemover(idNotificacion, 3500); 
+          return;
+        }
 
-      this.descargaTimeout2 = setTimeout(() => {
-        this.estadoDescarga = 'ninguna';
+        // Descarga real
+        const url = window.URL.createObjectURL(blob);
+        const enlace = document.createElement('a');
+        enlace.href = url;
+        const nombreLimpio = anexoADescargar.nombre.replace(/[^a-zA-Z0-9 -]/g, ""); 
+        enlace.download = `${nombreLimpio}.pdf`;
+        document.body.appendChild(enlace);
+        enlace.click();
+        document.body.removeChild(enlace);
+        
+        // --- LA MAGIA ESTÁ AQUÍ ---
+        // Retrasamos la limpieza de la memoria para que el gestor de descargas de Chrome reaccione
+        setTimeout(() => {
+          window.URL.revokeObjectURL(url);
+        }, 1000);
+        // ---------------------------
+
+        // Actualizamos NUESTRA notificación a finalizada
+        this.listaNotificacionesDescarga[index].estado = 'finalizada';
         this.cdr.detectChanges();
-      }, 3000);
-    }, 2500);
+        this.iniciarTemporizadorRemover(idNotificacion, 3000);
+      },
+      error: (err: any) => {
+        console.error('Error en descarga', err);
+        const index = this.listaNotificacionesDescarga.findIndex(n => n.id === idNotificacion);
+        if (index !== -1) {
+          this.listaNotificacionesDescarga[index].estado = 'error_vacio';
+          this.cdr.detectChanges();
+          this.iniciarTemporizadorRemover(idNotificacion, 3500);
+        }
+      }
+    });
+  }
+
+  // Ayudante para limpiar notificaciones específicas de la lista
+  private iniciarTemporizadorRemover(id: number, tiempo: number) {
+    setTimeout(() => {
+      this.listaNotificacionesDescarga = this.listaNotificacionesDescarga.filter(n => n.id !== id);
+      this.cdr.detectChanges();
+    }, tiempo);
+  }
+  // UX: Divulgación Progresiva - Mostrar detalles del contador
+  // UX: Divulgación Progresiva - Mostrar detalles del contador
+// UX: Divulgación Progresiva - Mostrar detalles del contador
+  // UX: Divulgación Progresiva - Mostrar detalles del contador
+abrirModalActualizados() {
+    const memoriaTiempos = JSON.parse(localStorage.getItem('memoriaAnexosUX') || '{}');
+    const treintaDiasEnMs = 30 * 24 * 60 * 60 * 1000;
+    const ahora = Date.now();
+
+    this.anexosRecientes = this.anexos.filter(a => {
+      const idStr = String(a.id);
+      const tiempoEdicion = memoriaTiempos[idStr] || 0;
+      const esCambioReciente = (ahora - tiempoEdicion) < treintaDiasEnMs && tiempoEdicion > 0;
+      const esAnioNuevo = parseInt(a.anio, 10) >= 2022;
+
+      return (esAnioNuevo || esCambioReciente) && !this.idsOcultosActualizados.includes(idStr);
+    }).sort((a, b) => {
+      const tA = memoriaTiempos[String(a.id)] || 0;
+      const tB = memoriaTiempos[String(b.id)] || 0;
+      return tB - tA || parseInt(b.id) - parseInt(a.id);
+    });
+
+    this.modalActualizadosVisible = true;
+  }
+  cerrarModalActualizados() {
+    this.modalActualizadosVisible = false;
+  }
+// Heurística #3: Control y Libertad del Administrador
+ // Heurística #3: Control y Libertad del Administrador
+  quitarDeActualizados(anexo: any) {
+    const ocultos = this.idsOcultosActualizados;
+    ocultos.push(String(anexo.id));
+    this.idsOcultosActualizados = ocultos;
+
+    this.anexosRecientes = this.anexosRecientes.filter(a => String(a.id) !== String(anexo.id));
+    this.actualizarDashboard();
+
+    // UX: Agregamos a la pila y reiniciamos el reloj
+    this.descartadosRecientes.push(anexo);
+    this.toastDescarteVisible = true;
+    this.tiempoDescarte = 5;
+
+    if (this.contadorDescarteId) window.clearInterval(this.contadorDescarteId);
+    this.ngZone.runOutsideAngular(() => {
+      this.contadorDescarteId = window.setInterval(() => {
+        this.ngZone.run(() => {
+          this.tiempoDescarte--;
+          if (this.tiempoDescarte <= 0) {
+            window.clearInterval(this.contadorDescarteId);
+            this.toastDescarteVisible = false;
+            this.descartadosRecientes = []; // Vaciamos la memoria temporal al terminar el tiempo
+          }
+          this.cdr.detectChanges();
+        });
+      }, 1000);
+    });
+  }
+
+  // UX: Ctrl+Z para múltiples descartes (Pila LIFO)
+  deshacerDescarte() {
+    if (this.descartadosRecientes.length > 0) {
+      // Sacamos el ÚLTIMO anexo que descartaste
+      const recuperado = this.descartadosRecientes.pop();
+      
+      // Lo sacamos de la lista negra
+      const ocultos = this.idsOcultosActualizados.filter(id => id !== String(recuperado.id));
+      this.idsOcultosActualizados = ocultos;
+      
+      this.actualizarDashboard();
+      if (this.modalActualizadosVisible) {
+        this.abrirModalActualizados(); 
+      }
+
+      // Si ya vaciamos la pila, apagamos el Toast
+      if (this.descartadosRecientes.length === 0) {
+        this.toastDescarteVisible = false;
+        if (this.contadorDescarteId) window.clearInterval(this.contadorDescarteId);
+      } else {
+        // Si aún quedan, reiniciamos el reloj para que respires
+        this.tiempoDescarte = 5;
+      }
+      
+      this.cdr.detectChanges();
+    }
   }
   
   obtenerTamanoArchivoMB(bytes: number): string {
